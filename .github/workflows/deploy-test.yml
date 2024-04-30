@@ -1,0 +1,25 @@
+name: Deploy to Test
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-test:
+    name: Deploy test
+    environment: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build & tag docker image
+        uses: vmvt-devhub/reusable-workflows/.github/actions/docker-build-tag-push@main
+        with:
+          environment: test
+          push: true

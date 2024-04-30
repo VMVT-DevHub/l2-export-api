@@ -1,0 +1,17 @@
+import Moleculer, { Errors } from 'moleculer';
+
+export function throwUnauthorizedError(message?: string): Errors.MoleculerError {
+  throw new Moleculer.Errors.MoleculerClientError(message || `Unauthorized.`, 401, 'UNAUTHORIZED');
+}
+
+export function throwNotFoundError(message?: string): Errors.MoleculerError {
+  throw new Moleculer.Errors.MoleculerClientError(message || `Not found.`, 404, 'NOT_FOUND');
+}
+
+export function throwNoRightsError(message?: string): Errors.MoleculerError {
+  throw new Moleculer.Errors.MoleculerClientError(message || `No rights.`, 403, 'NO_RIGHTS');
+}
+
+export function throwValidationError(message?: string): Errors.MoleculerError {
+  throw new Moleculer.Errors.MoleculerClientError(message || `No valid.`, 422, 'VALIDATION_ERROR');
+}

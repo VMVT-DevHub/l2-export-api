@@ -1,0 +1,29 @@
+
+version: "3.3"
+
+services:
+  postgres:
+    image: postgres:16
+    networks:
+      - internal
+    ports:
+      - 5732:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: l2
+      TZ: 'Etc/GMT'
+      PGTZ: 'Etc/GMT'
+
+  redis:
+    image: redis:latest
+    networks:
+      - internal
+    ports:
+      - 6732:6379
+
+networks:
+  internal:
+
+volumes:
+  data:
