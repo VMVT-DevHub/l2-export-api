@@ -86,6 +86,8 @@ export type SportsBasesSpacesTypesAndFieldsValues<
 export default class LoadService extends moleculer.Service {
   @Method
   async seedDB() {
+    if (process.env.NODE_ENV !== 'local') return;
+
     const generateSeedData = (certificate: number, id: number) => ({
       id,
       code: faker.number.int({ min: 1, max: 1000 }),
