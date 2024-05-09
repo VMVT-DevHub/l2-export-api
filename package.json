@@ -24,7 +24,6 @@
   "devDependencies": {
     "@aplinkosministerija/biip-prettier-config": "^1.1.0",
     "@aplinkosministerija/eslint-config-biip-api": "^1.0.0",
-    "@faker-js/faker": "^8.4.1",
     "@microsoft/eslint-formatter-sarif": "^3.0.0",
     "@types/lodash": "^4.14.178",
     "@types/node": "^20.4.5",
@@ -42,6 +41,7 @@
     "ts-node": "^10.5.0"
   },
   "dependencies": {
+    "@faker-js/faker": "^8.4.1",
     "@moleculer/database": "github:ambrazasp/moleculerjs-database",
     "dotenv": "^16.0.0",
     "ioredis": "^4.28.5",
