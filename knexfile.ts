@@ -19,6 +19,7 @@ const config = {
     ...commonConfig,
     migrations: {
       tableName: 'migrations',
+      schemaName: process.env.DB_SCHEMA,
       directory: './database/migrations',
     },
   },
