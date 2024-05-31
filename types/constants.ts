@@ -7,3 +7,7 @@ export function queryBoolean(field: string, value: boolean = false) {
   }
   return { $raw: `${fieldValue} TRUE` };
 }
+
+export function trimValueSpaces({ value }: any) {
+  return value.trim();
+}
