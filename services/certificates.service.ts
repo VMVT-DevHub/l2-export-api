@@ -194,15 +194,15 @@ export default class CertificateService extends moleculer.Service {
         const randomDate = faker.date.past({ years: 1 });
         const randomYear = new Date(randomDate).getFullYear();
         const randomPrefixes = ['', 'LT', 'A', 'B', 'EXPORT.LT.'];
-        const randomPrefix = randomPrefixes[Math.floor(Math.random() * randomPrefixes.length)];
+        const randomPrefix = randomPrefixes[faker.number.int({ max: randomPrefixes.length - 1 })];
 
-        const optionalSpace = Math.floor(Math.random() * 2) < 1 ? '' : ' ';
+        const optionalSpace = faker.number.int({ max: 1 }) === 1 ? '' : ' ';
         const certificateNumber = `${randomPrefix}${optionalSpace}${randomNumber}`;
 
         data.push({
           id: i + 1,
           certificateNumber,
-          status: status[Math.floor(Math.random() * status.length)],
+          status: status[faker.number.int({ max: status.length - 1 })],
           date: randomDate,
           number: randomNumber,
           year: randomYear,
