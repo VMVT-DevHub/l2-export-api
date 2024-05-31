@@ -45,10 +45,6 @@ export interface Certificate extends CommonFields {
         primaryKey: true,
         secure: true,
       },
-      enr: {
-        type: 'number',
-        columnName: 'enr',
-      },
       year: {
         type: 'number',
         columnName: 'year',
@@ -149,12 +145,12 @@ export default class CertificateService extends moleculer.Service {
     rest: 'GET /search',
     params: {
       certificateNumber: 'string|convert|min:3',
-      enr: 'string|convert',
+      grantedNumber: 'string|convert',
       year: 'string|convert|optional',
     },
   })
-  async search(ctx: Context<{ certificateNumber: string; year?: string; enr: string }>) {
-    const { certificateNumber, year, enr } = ctx.params;
+  async search(ctx: Context<{ certificateNumber: string; year?: string; grantedNumber: string }>) {
+    const { certificateNumber, year, grantedNumber } = ctx.params;
 
     // it's really messy. Spaces can be found anywhere (except in cetirifacte number (without letters))
     const query: any = {
@@ -164,7 +160,7 @@ export default class CertificateService extends moleculer.Service {
           bindings: [`%${certificateNumber}%`],
         },
       },
-      enr,
+      grantedNumber,
     };
 
     if (year) {
