@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS ${schema}.zur123
 (
     data timestamp without time zone,
     enr numeric(16,0) NOT NULL,
+    year numeric(5,0),
     raj character(30) COLLATE pg_catalog."default",
     fir character(50) COLLATE pg_catalog."default",
     sal character(30) COLLATE pg_catalog."default",

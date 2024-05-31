@@ -2,7 +2,7 @@
 import moleculer from 'moleculer';
 import { Method, Service } from 'moleculer-decorators';
 import DbConnection from '../mixins/database.mixin';
-import { CommonFields, CommonPopulates, Table } from '../types';
+import { CommonFields, CommonPopulates, Table, trimValueSpaces } from '../types';
 import { Certificate } from './certificates.service';
 import { faker } from '@faker-js/faker';
 
@@ -52,10 +52,12 @@ export type SportsBasesSpacesTypesAndFieldsValues<
       code: {
         type: 'string',
         columnName: 'kkod',
+        get: trimValueSpaces,
       },
       name: {
         type: 'string',
         columnName: 'kro',
+        get: trimValueSpaces,
       },
       amount: {
         type: 'number',
@@ -64,6 +66,7 @@ export type SportsBasesSpacesTypesAndFieldsValues<
       manufacturer: {
         type: 'string',
         columnName: 'gamintojas',
+        get: trimValueSpaces,
       },
       packagesNumber: {
         type: 'number',
@@ -72,6 +75,7 @@ export type SportsBasesSpacesTypesAndFieldsValues<
       originCountryCertificate: {
         type: 'string',
         columnName: 'kilsert',
+        get: trimValueSpaces,
       },
       certificate: {
         type: 'number',
