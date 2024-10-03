@@ -19,14 +19,15 @@ export type Table<
   F extends keyof (Fields & Populates) = keyof Fields,
 > = Pick<Omit<Fields, P> & Pick<Populates, P>, Extract<P | Exclude<keyof Fields, P>, F>>;
 
-export interface CommonFields {
-  id: number;
-  createdAt: Date;
-  updatedAt: Date;
-  detetedAt: Date;
-}
+export interface CommonFields {}
 
 export interface CommonPopulates {}
+
+export const DEFAULT_SCOPES = {
+  notDeleted: {
+    isDeleted: { $or: [{ $exists: false }, { $eq: false }] },
+  },
+};
 
 export interface EntityChangedParams<T> {
   type: 'create' | 'update' | 'replace' | 'remove' | 'clear';

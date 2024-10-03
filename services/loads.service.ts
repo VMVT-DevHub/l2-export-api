@@ -1,27 +1,32 @@
 'use strict';
 import moleculer from 'moleculer';
 import { Method, Service } from 'moleculer-decorators';
-import DbConnection from '../mixins/database.mixin';
-import { CommonFields, CommonPopulates, Table, trimValueSpaces } from '../types';
+import DbConnection, { PopulateHandlerFn } from '../mixins/database.mixin';
+import { CommonFields, CommonPopulates, DEFAULT_SCOPES, Table, trimValueSpaces } from '../types';
 import { Certificate } from './certificates.service';
+import { Lookup } from './lookups.service';
 import { faker } from '@faker-js/faker';
 
-interface Fields extends CommonFields {
+interface Fields {
   id: number;
-  code: string;
-  name: string;
-  amount: number;
-  manufacturer: string;
-  packagesNumber: number;
-  originCountryCertificate: string;
-  certificate: Certificate['id'];
+  certificate: Certificate['id']; // krovCertId
+  sealNumber: string; // krovPlomba
+  transportType: Lookup['id']; // krovTransportoTipas
+  transportNumber: string; // krovKonteinerioNr
+  details: string; // krovDetales
+  createDate: Date; // krovDateCreated
+  modifyDate: Date; // krovDateModif
+  modifyUser: string; // krovModifUser
+  modifyUserName: string; // krovModifUserName
+  isDeleted: boolean; // krovModifDelete
 }
 
-interface Populates extends CommonPopulates {
+interface Populates {
   certificate: Certificate;
+  transportType: Lookup;
 }
 
-export type SportsBasesSpacesTypesAndFieldsValues<
+export type Load<
   P extends keyof Populates = never,
   F extends keyof (Fields & Populates) = keyof Fields,
 > = Table<Fields, Populates, P, F>;
@@ -30,7 +35,7 @@ export type SportsBasesSpacesTypesAndFieldsValues<
   name: 'loads',
   mixins: [
     DbConnection({
-      collection: 'zur1p',
+      collection: 'kroviniai',
       createActions: {
         create: false,
         update: false,
@@ -44,74 +49,94 @@ export type SportsBasesSpacesTypesAndFieldsValues<
   settings: {
     fields: {
       id: {
-        type: 'string',
-        columnType: 'integer',
+        type: 'number',
         primaryKey: true,
         secure: true,
       },
-      code: {
-        type: 'string',
-        columnName: 'kkod',
-        get: trimValueSpaces,
-      },
-      name: {
-        type: 'string',
-        columnName: 'kro',
-        get: trimValueSpaces,
-      },
-      amount: {
-        type: 'number',
-        columnName: 'kiek',
-      },
-      manufacturer: {
-        type: 'string',
-        columnName: 'gamintojas',
-        get: trimValueSpaces,
-      },
-      packagesNumber: {
-        type: 'number',
-        columnName: 'pak',
-      },
-      originCountryCertificate: {
-        type: 'string',
-        columnName: 'kilsert',
-        get: trimValueSpaces,
-      },
       certificate: {
-        type: 'number',
-        columnName: 'lid',
+        type: 'string',
+        columnName: 'krovCertId',
+        populate: 'certificates.resolve',
+      },
+      sealNumber: {
+        type: 'string',
+        columnName: 'krovPlomba',
+        get: trimValueSpaces,
+      },
+      transportType: {
+        type: 'string',
+        columnName: 'krovTransportoTipas',
+        populate: 'lookups.resolve',
+      },
+      transportNumber: {
+        type: 'string',
+        columnName: 'krovKonteinerioNr',
+        get: trimValueSpaces,
+      },
+      details: {
+        type: 'string',
+        columnName: 'krovDetales',
+        get: trimValueSpaces,
+      },
+      createDate: {
+        type: 'date',
+        columnName: 'krovDateCreated',
+      },
+      modifyDate: {
+        type: 'date',
+        columnName: 'krovDateModif',
+      },
+      modifyUser: {
+        type: 'string',
+        columnName: 'krovModifUser',
+        get: trimValueSpaces,
+      },
+      modifyUserName: {
+        type: 'string',
+        columnName: 'krovModifUserName',
+        get: trimValueSpaces,
+      },
+      isDeleted: {
+        type: 'boolean',
+        columnName: 'krovModifDelete',
+      },
+      products: {
+        type: 'array',
+        readonly: true,
+        virtual: true,
+        default: () => [],
         populate: {
-          action: 'certificates.resolve',
+          keyField: 'id',
+          handler: PopulateHandlerFn('products.populateByProp'),
+          params: {
+            queryKey: 'load',
+            mappingMulti: true,
+            populate: ['country', 'manufacturer'],
+          },
         },
       },
     },
+    scopes: { ...DEFAULT_SCOPES },
+    defaultScopes: [...Object.keys(DEFAULT_SCOPES)],
   },
 })
-export default class LoadService extends moleculer.Service {
+export default class extends moleculer.Service {
   @Method
   async seedDB() {
     if (process.env.NODE_ENV !== 'local') return;
 
-    const generateSeedData = (certificate: number, id: number) => ({
-      id,
-      code: faker.number.int({ min: 1, max: 1000 }),
-      name: faker.commerce.productName(),
-      amount: faker.number.int({ max: 100 }),
-      manufacturer: faker.company.name(),
-      packagesNumber: Math.floor(Math.random() * 100) + 1,
-      originCountryCertificate: faker.number.int({ min: 1000000, max: 9999999 }),
-      certificate,
-    });
-    await this.broker.waitForServices(['certificates']);
-    const seedData = [];
-    const certificates: Certificate[] = await this.broker.call('certificates.find');
-    for (const c of certificates) {
-      const randomNum = faker.number.int({ max: 10 });
-      for (let i = 0; i <= randomNum; i++) {
-        const seed = generateSeedData(c.id, seedData.length + 1);
-        seedData.push(seed);
-      }
-    }
-    await this.createEntities(null, seedData);
+    await this.seedCsv('kroviniai', [
+      'id',
+      'certificate',
+      'sealNumber',
+      'transportType',
+      'transportNumber',
+      'details',
+      'createDate',
+      'modifyDate',
+      'modifyUser',
+      'modifyUserName',
+      'isDeleted',
+    ]);
   }
 }
