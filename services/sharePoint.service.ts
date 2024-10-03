@@ -29,7 +29,7 @@ export function toReadableStream(fetchReadable: any): NodeJS.ReadableStream {
     baseUrl: 'https://graph.microsoft.com/v1.0/drives',
   },
 })
-export default class SharePointService extends Moleculer.Service {
+export default class extends Moleculer.Service {
   @Method
   async authenticate() {
     const url = `https://login.microsoftonline.com/${process.env.SHARE_POINT_TENANT_ID}/oauth2/v2.0/token`;

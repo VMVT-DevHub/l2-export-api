@@ -9,5 +9,5 @@ export function queryBoolean(field: string, value: boolean = false) {
 }
 
 export function trimValueSpaces({ value }: any) {
-  return value.trim();
+  return value?.trim?.();
 }

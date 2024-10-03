@@ -1,5 +1,5 @@
 import moleculer, { Context, Errors } from 'moleculer';
-import { Action, Method, Service } from 'moleculer-decorators';
+import { Action, Service } from 'moleculer-decorators';
 import ApiGateway from 'moleculer-web';
 
 @Service({
@@ -89,7 +89,7 @@ import ApiGateway from 'moleculer-web';
     //    },
   },
 })
-export default class ApiService extends moleculer.Service {
+export default class extends moleculer.Service {
   @Action()
   ping() {
     return {

@@ -1,6 +1,8 @@
 'use strict';
 
 import _ from 'lodash';
+import fs from 'node:fs';
+import { parse } from 'csv-parse';
 const DbService = require('@moleculer/database').Service;
 import config from '../knexfile';
 import filtersMixin from 'moleculer-knex-filters';
@@ -162,6 +164,34 @@ export default function (opts: any = {}) {
         queryIds = (Array.isArray(queryIds) ? queryIds : [queryIds]).map((id: any) => parseInt(id));
 
         return ids.filter((id) => queryIds.indexOf(id) >= 0);
+      },
+
+      async seedCsv(fileName: string, columns: string[]) {
+        const records = [];
+        const parser = fs
+          .createReadStream(`${__dirname}/../database/seed/${fileName}.csv`)
+          .pipe(parse());
+
+        for await (const record of parser) {
+          const obj: any = {};
+
+          const values = record.map((c: string) => {
+            if (c === 'NULL') return null;
+            if (c === 'True') return true;
+            if (c === 'False') return false;
+            return c;
+          });
+
+          for (const key in values) {
+            const value = values[key];
+            const column = columns[key as any];
+            obj[column] = value;
+          }
+
+          records.push(obj);
+        }
+
+        await this.createEntities(null, records.splice(1));
       },
     },
 

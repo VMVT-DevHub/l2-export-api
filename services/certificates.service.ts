@@ -2,31 +2,65 @@
 import moleculer, { Context } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
 import DbConnection, { PopulateHandlerFn } from '../mixins/database.mixin';
-import { CommonFields, throwNotFoundError, trimValueSpaces } from '../types';
-import { faker } from '@faker-js/faker';
+import {
+  DEFAULT_SCOPES,
+  FieldHookCallback,
+  Table,
+  throwNotFoundError,
+  trimValueSpaces,
+} from '../types';
+import { ActivityLocation } from './activityLocations.service';
+import { Country } from './countries.service';
+import { Post } from './posts.service';
+import { Risk } from './risks.service';
 
-export interface Certificate extends CommonFields {
+interface Fields {
   id: number;
-  certificateNumber: string;
-  status: string;
-  date: Date;
-  exportCompany: string;
-  importCompany: string;
-  importCountry: string;
-  sealNumber: string;
-  territorialNumber: string;
-  notes: string;
-  transportNumber: string;
-  grantedNumber: number;
-  departurePVP: string;
-  signedBy: string;
+  certificateNumber: string; // certNr
+  exporter: ActivityLocation['id']; // certExport
+  importCountry: Country['id']; // certImpSalis
+  status: string; // certStatus
+  createDate: Date; // certDateCreated
+  date: Date; // certDateIsdavimo
+  departureDate: Date; // certDateIsvykimo
+  notes: string; // certDetales
+  risk: Risk['id']; // certRizika
+  post: Post['id']; // certPostas
+  issueEmail: string; // certIsdave
+  issueName: string; // certIsdaveName
+  createName: string; // certCreatedUser
+  createUserName: string; // certCreatedUserName
+  modifyUser: string; // certModifUser
+  modifyUserName: string; // certModifUserName
+  isDeleted: boolean; // certDelete
+  modifyDepartment: string; // certModifDep
+  issueDepartment: string; // certIsdaveDep
+  isModified: boolean; // certPakeistas
+  blank: string; // certBlankas
+  modifyDate: Date; // certDateModif
+  riskValue: number; // certRizikosBalas
+  isChecking: boolean; // certTikrinimas
+  riskModify: number; // certRizikosKeitimas
+  riskReason: string; // certRizikosPriezastis
 }
+
+interface Populates {
+  exporter: ActivityLocation;
+  importCountry: Country;
+  post: Post;
+  risk: Risk;
+}
+
+export type Certificate<
+  P extends keyof Populates = never,
+  F extends keyof (Fields & Populates) = keyof Fields,
+> = Table<Fields, Populates, P, F>;
 
 @Service({
   name: 'certificates',
   mixins: [
     DbConnection({
-      collection: 'zur123',
+      collection: 'sertifikatai',
       createActions: {
         create: false,
         update: false,
@@ -40,73 +74,140 @@ export interface Certificate extends CommonFields {
   settings: {
     fields: {
       id: {
-        type: 'string',
-        columnType: 'integer',
+        type: 'number',
         primaryKey: true,
         secure: true,
       },
-      year: {
-        type: 'number',
-        columnName: 'year',
-      },
       certificateNumber: {
         type: 'string',
-        columnName: 'sertif',
+        columnName: 'certNr',
         get: trimValueSpaces,
       },
-      status: {
-        type: 'string',
-        columnName: 'status',
-      },
-      date: {
-        type: 'date',
-        columnName: 'data',
-      },
-      exportCompany: {
-        type: 'string',
-        columnName: 'fir',
-        get: trimValueSpaces,
-      },
-      exportCountry: {
-        virtual: true,
-        type: 'string',
-        get: () => 'Lietuva',
-      },
-      importCompany: {
-        type: 'string',
-        columnName: 'sritis',
-        get: trimValueSpaces,
+      exporter: {
+        type: 'number',
+        columnName: 'certExport',
+        populate: {
+          action: 'activityLocations.resolve',
+          params: {
+            populate: ['country'],
+          },
+        },
       },
       importCountry: {
         type: 'string',
-        columnName: 'sal',
+        columnName: 'certImpSalis',
+        populate: 'countries.resolve',
+      },
+      status: {
+        type: 'string',
+        columnName: 'certStatus',
         get: trimValueSpaces,
       },
-      sealNumber: {
-        type: 'string',
-        columnName: 'plomba',
-        get: trimValueSpaces,
+      createDate: {
+        type: 'date',
+        columnName: 'certDateCreated',
       },
-      territorialNumber: {
-        type: 'string',
-        columnName: 'raj',
-        get: trimValueSpaces,
+      date: {
+        type: 'date',
+        columnName: 'certDateIsdavimo',
+      },
+      year: {
+        virtual: true,
+        get: ({ entity }: FieldHookCallback) => {
+          return entity.certDateIsdavimo?.getFullYear?.().toString();
+        },
+      },
+      departureDate: {
+        type: 'date',
+        columnName: 'certDateIsvykimo',
       },
       notes: {
         type: 'string',
-        columnName: 'pastaba',
+        columnName: 'certDetales',
         get: trimValueSpaces,
       },
-      transportNumber: {
+      risk: {
+        type: 'number',
+        columnName: 'certRizika',
+        populate: 'risks.resolve',
+      },
+      post: {
+        type: 'number',
+        columnName: 'certPostas',
+        populate: 'posts.resolve',
+      },
+      issueEmail: {
         type: 'string',
-        columnName: 'tranr',
+        columnName: 'certIsdave',
         get: trimValueSpaces,
       },
-      grantedNumber: { type: 'number', columnName: 'enr' },
-      departurePVP: { type: 'string', columnName: 'pos', get: trimValueSpaces },
-      signedBy: {
+      issueName: {
         type: 'string',
-        columnName: 'paras',
+        columnName: 'certIsdaveName',
+        get: trimValueSpaces,
+      },
+      createName: {
+        type: 'string',
+        columnName: 'certCreatedUser',
+        get: trimValueSpaces,
+      },
+      createUserName: {
+        type: 'string',
+        columnName: 'certCreatedUserName',
+        get: trimValueSpaces,
+      },
+      modifyUser: {
+        type: 'string',
+        columnName: 'certModifUser',
+        get: trimValueSpaces,
+      },
+      modifyUserName: {
+        type: 'string',
+        columnName: 'certModifUserName',
+        get: trimValueSpaces,
+      },
+      isDeleted: {
+        type: 'boolean',
+        columnName: 'certDelete',
+      },
+      modifyDepartment: {
+        type: 'string',
+        columnName: 'certModifDep',
+        get: trimValueSpaces,
+      },
+      issueDepartment: {
+        type: 'string',
+        columnName: 'certIsdaveDep',
+        get: trimValueSpaces,
+      },
+      isModified: {
+        type: 'boolean',
+        columnName: 'certPakeistas',
+      },
+      blank: {
+        type: 'string',
+        columnName: 'certBlankas',
+        get: trimValueSpaces,
+      },
+      modifyDate: {
+        type: 'date',
+        columnName: 'certDateModif',
+      },
+      riskValue: {
+        type: 'number',
+        columnName: 'certRizikosBalas',
+      },
+      isChecking: {
+        type: 'boolean',
+        columnName: 'certTikrinimas',
+      },
+      riskModify: {
+        type: 'number',
+        columnName: 'certRizikosKeitimas',
+      },
+      riskReason: {
+        type: 'string',
+        columnName: 'certRizikosPriezastis',
         get: trimValueSpaces,
       },
       loads: {
@@ -120,56 +221,75 @@ export interface Certificate extends CommonFields {
           params: {
             queryKey: 'certificate',
             mappingMulti: true,
+            populate: ['products', 'transportType'],
           },
         },
       },
-      files: {
+      products: {
         type: 'array',
         readonly: true,
         virtual: true,
         default: () => [],
-        populate: async (ctx: Context, _values: Request[], entities: Certificate[]) => {
-          return await Promise.all(
-            entities.map(async (entity) => {
-              const files = await ctx.call('sharepoint.getFiles', { id: entity.id });
-              return files;
-            }),
-          );
+        populate: {
+          keyField: 'id',
+          handler: PopulateHandlerFn('products.populateByProp'),
+          params: {
+            queryKey: 'certificate',
+            mappingMulti: true,
+            populate: ['country', 'manufacturer'],
+          },
         },
       },
     },
+    scopes: { ...DEFAULT_SCOPES },
+    defaultScopes: [...Object.keys(DEFAULT_SCOPES)],
   },
 })
-export default class CertificateService extends moleculer.Service {
+export default class extends moleculer.Service {
   @Action({
     rest: 'GET /search',
     params: {
       certificateNumber: 'string|convert|min:3',
-      grantedNumber: 'string|convert',
       year: 'string|convert|optional',
     },
   })
   async search(ctx: Context<{ certificateNumber: string; year?: string; grantedNumber: string }>) {
-    const { certificateNumber, year, grantedNumber } = ctx.params;
+    const { certificateNumber, year } = ctx.params;
 
     // it's really messy. Spaces can be found anywhere (except in cetirifacte number (without letters))
     const query: any = {
       certificateNumber: {
-        $raw: {
-          condition: 'sertif ilike ?',
-          bindings: [`%${certificateNumber}%`],
-        },
+        $ilike: `%${certificateNumber}`,
       },
-      grantedNumber,
     };
 
     if (year) {
-      query.year = year;
+      query.year = {
+        $raw: {
+          condition: "date_part('year', cert_date_isdavimo) = ?",
+          bindings: [year],
+        },
+      };
     }
 
     const certificates: Certificate[] = await this.findEntities(ctx, {
-      populate: 'loads',
       query,
+      fields: [
+        'id',
+        'year',
+        'certificateNumber',
+        'status',
+        'date',
+        'exporter',
+        'importCountry',
+        'notes',
+        'post',
+        'issueName',
+        'issueEmail',
+        'loads',
+        'products',
+      ],
+      populate: ['exporter', 'importCountry', 'post', 'loads', 'products'],
     });
 
     if (!certificates?.length) {
@@ -185,45 +305,34 @@ export default class CertificateService extends moleculer.Service {
   async seedDB() {
     if (process.env.NODE_ENV !== 'local') return;
 
-    const status = ['Galiojantis', 'Negaliojantis'];
-
-    const generateSeedData = () => {
-      const data = [];
-      for (let i = 0; i < 10; i++) {
-        const randomNumber = faker.number.int({ min: 100, max: 999999 });
-        const randomDate = faker.date.past({ years: 1 });
-        const randomYear = new Date(randomDate).getFullYear();
-        const randomPrefixes = ['', 'LT', 'A', 'B', 'EXPORT.LT.'];
-        const randomPrefix = randomPrefixes[faker.number.int({ max: randomPrefixes.length - 1 })];
-
-        const optionalSpace = faker.number.int({ max: 1 }) === 1 ? '' : ' ';
-        const certificateNumber = `${randomPrefix}${optionalSpace}${randomNumber}`;
-
-        data.push({
-          id: i + 1,
-          certificateNumber,
-          status: status[faker.number.int({ max: status.length - 1 })],
-          date: randomDate,
-          number: randomNumber,
-          year: randomYear,
-          exportCompany: faker.company.name(),
-          importCompany: faker.company.name(),
-          importCountry: faker.location.country(),
-          sealNumber: faker.number.int({ min: 1000000, max: 9999999 }),
-          territorialNumber: faker.location.city() + ' MPV',
-          notes: faker.commerce.productName(),
-          transportNumber: `${faker.number.int({ min: 1000000, max: 9999999 })}/${faker.number.int({
-            min: 1000000,
-            max: 9999999,
-          })}`,
-          grantedNumber: faker.number.int({ min: 10000, max: 99999 }),
-          departurePVP: faker.lorem.word(),
-          signedBy: faker.person.fullName(),
-        });
-      }
-      return data;
-    };
-    const seedData = generateSeedData();
-    await this.createEntities(null, seedData);
+    await this.seedCsv('sertifikatai', [
+      'id',
+      'certificateNumber',
+      'exporter',
+      'importCountry',
+      'status',
+      'createDate',
+      'date',
+      'departureDate',
+      'notes',
+      'risk',
+      'post',
+      'issueEmail',
+      'issueName',
+      'createName',
+      'createUserName',
+      'modifyUser',
+      'modifyUserName',
+      'isDeleted',
+      'modifyDepartment',
+      'issueDepartment',
+      'isModified',
+      'blank',
+      'modifyDate',
+      'riskValue',
+      'isChecking',
+      'riskModify',
+      'riskReason',
+    ]);
   }
 }

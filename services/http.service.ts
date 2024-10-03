@@ -22,4 +22,4 @@ import { Service } from 'moleculer-decorators';
     },
   },
 })
-export default class HttpService extends Moleculer.Service {}
+export default class extends Moleculer.Service {}
