@@ -7,6 +7,40 @@ const schema = process.env.DB_SCHEMA || 'public';
 exports.up = function (knex) {
   return knex.schema
     .withSchema(schema)
+    .createTable('certificates', (table) => {
+      table.increments('id');
+      table.string('certificateNumber');
+      table.json('importCountry');
+      table.string('importPost');
+      table.string('importReceiver');
+      table.string('status');
+      table.string('issueDate');
+      table.string('blankNumber');
+      table.json('post');
+      table.string('postOther');
+      table.string('issueEmail');
+      table.string('issueName');
+      table.string('issueDepartment');
+      table.string('fileCount');
+      table.json('exporter');
+      table.json('transporters').nullable();
+      table.json('loads').nullable();
+      table.json('products').nullable();
+    })
+    .dropTable('salys')
+    .dropTable('postai')
+    .dropTable('rizikos')
+    .dropTable('lookup')
+    .dropTable('veiklavietes')
+    .dropTable('produktai')
+    .dropTable('kroviniai')
+    .dropTable('sertifikatai');
+};
+
+exports.down = function (knex) {
+  return knex.schema
+    .withSchema(schema)
+    .dropTable('certificates')
     .createTable('salys', (table) => {
       table.string('id');
       table.string('salPavad');
@@ -139,21 +173,4 @@ exports.up = function (knex) {
       table.string('certModifUserDep');
       table.boolean('certDelete');
     });
-};
-
-/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
-exports.down = function (knex) {
-  return knex.schema
-    .withSchema(schema)
-    .dropTable('salys')
-    .dropTable('postai')
-    .dropTable('rizikos')
-    .dropTable('lookup')
-    .dropTable('veiklavietes')
-    .dropTable('produktai')
-    .dropTable('kroviniai')
-    .dropTable('sertifikatai');
 };

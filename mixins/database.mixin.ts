@@ -1,12 +1,12 @@
 'use strict';
 
-import _ from 'lodash';
-import fs from 'node:fs';
 import { parse } from 'csv-parse';
-const DbService = require('@moleculer/database').Service;
-import config from '../knexfile';
-import filtersMixin from 'moleculer-knex-filters';
+import _ from 'lodash';
 import { Context } from 'moleculer';
+import filtersMixin from 'moleculer-knex-filters';
+import fs from 'node:fs';
+import config from '../knexfile';
+const DbService = require('@moleculer/database').Service;
 
 export function PopulateHandlerFn(action: string) {
   return async function (
@@ -179,7 +179,12 @@ export default function (opts: any = {}) {
             if (c === 'NULL') return null;
             if (c === 'True') return true;
             if (c === 'False') return false;
-            return c;
+
+            try {
+              return JSON.parse(c);
+            } catch {
+              return c;
+            }
           });
 
           for (const key in values) {
