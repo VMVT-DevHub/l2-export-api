@@ -81,6 +81,7 @@ export default class extends Moleculer.Service {
       `${this.settings.baseUrl}/${process.env.SHARE_POINT_DRIVE_ID}/root:/${id}:/children?` +
       new URLSearchParams({
         select: ['id', 'name', 'size', 'file'].join(','),
+        expand: 'listItem',
       });
 
     try {
@@ -100,7 +101,12 @@ export default class extends Moleculer.Service {
           timeout: 0,
         },
       );
-      return response.value || [];
+
+      const filteredItems = (response?.value || []).filter(
+        (item: any) => item?.listItem?.fields?.documentType === 'Sertifikatas',
+      );
+
+      return filteredItems;
     } catch (e) {
       return [];
     }
