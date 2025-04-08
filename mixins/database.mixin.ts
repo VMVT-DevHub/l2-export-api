@@ -4,7 +4,7 @@ import { parse } from 'csv-parse';
 import _ from 'lodash';
 import { Context } from 'moleculer';
 import filtersMixin from 'moleculer-knex-filters';
-import fs from 'node:fs';
+import fs, { existsSync } from 'node:fs';
 import config from '../knexfile';
 const DbService = require('@moleculer/database').Service;
 
@@ -168,9 +168,11 @@ export default function (opts: any = {}) {
 
       async seedCsv(fileName: string, columns: string[]) {
         const records = [];
-        const parser = fs
-          .createReadStream(`${__dirname}/../database/seed/${fileName}.csv`)
-          .pipe(parse());
+
+        const file = `${__dirname}/../database/seed/${fileName}.csv`;
+        const exists = existsSync(file);
+        if (!exists) return;
+        const parser = fs.createReadStream(file).pipe(parse());
 
         for await (const record of parser) {
           const obj: any = {};

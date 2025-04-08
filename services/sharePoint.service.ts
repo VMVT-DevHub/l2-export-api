@@ -1,4 +1,5 @@
 'use strict';
+import _ from 'lodash';
 import Moleculer, { Context, RestSchema } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
 import { Readable } from 'stream';
@@ -102,9 +103,12 @@ export default class extends Moleculer.Service {
         },
       );
 
-      const filteredItems = (response?.value || []).filter(
-        (item: any) => item?.listItem?.fields?.documentType === 'Sertifikatas',
-      );
+      const prefix = 'listItem.fields';
+      const filteredItems = (response?.value || []).filter((item: any) => {
+        const docType =
+          _.get(item, `${prefix}.documentType`) || _.get(item, `${prefix}.DocumentType`);
+        return docType === 'Sertifikatas';
+      });
 
       return filteredItems;
     } catch (e) {
