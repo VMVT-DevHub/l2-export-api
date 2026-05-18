@@ -3,6 +3,7 @@ import _ from 'lodash';
 import Moleculer, { Context, RestSchema } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
 import { Readable } from 'stream';
+import { throwNotFoundError } from '../types';
 
 export function toReadableStream(fetchReadable: any): NodeJS.ReadableStream {
   if (!fetchReadable) return;
@@ -117,6 +118,45 @@ export default class extends Moleculer.Service {
   }
 
   @Method
+  async getFileInfo(id: string) {
+    const token = await this.getToken();
+    const url =
+      `${this.settings.baseUrl}/${process.env.SHARE_POINT_DRIVE_ID}/items/${id}?` +
+      new URLSearchParams({
+        select: ['id', 'name', 'file'].join(','),
+        expand: 'listItem',
+      });
+
+    try {
+      return await this.broker.call(
+        'http.get',
+        {
+          url,
+          opt: {
+            responseType: 'json',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: token,
+            },
+          },
+        },
+        {
+          timeout: 0,
+        },
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  @Method
+  isCertificateFile(item: any) {
+    const prefix = 'listItem.fields';
+    const docType = _.get(item, `${prefix}.documentType`) || _.get(item, `${prefix}.DocumentType`);
+    return docType === 'Sertifikatas';
+  }
+
+  @Method
   getFileUrl(id: string, fileName: string) {
     return `${process.env.SERVER_HOST}/certificates/download/${id}/${fileName}`;
   }
@@ -186,6 +226,11 @@ export default class extends Moleculer.Service {
     };
 
     const { id, name } = ctx.params;
+    const fileInfo: any = await this.getFileInfo(id);
+
+    if (!fileInfo || !this.isCertificateFile(fileInfo) || fileInfo.name !== name) {
+      throwNotFoundError('Certificate file not found.');
+    }
 
     const url = `${this.settings.baseUrl}/${process.env.SHARE_POINT_DRIVE_ID}/items/${id}/content`;
 

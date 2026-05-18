@@ -74,13 +74,7 @@ interface Certificate {
   mixins: [
     DbConnection({
       collection: 'certificates',
-      createActions: {
-        create: false,
-        update: false,
-        remove: false,
-        createMany: false,
-        removeAllEntities: false,
-      },
+      createActions: false,
       rest: null,
     }),
   ],

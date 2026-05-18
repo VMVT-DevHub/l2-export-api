@@ -88,11 +88,66 @@ export default function (opts: any = {}) {
 
   opts = _.defaultsDeep(opts, { adapter }, { cache: opts.cache || cache });
 
-  const removeRestActions: any = {};
+  const actionEnabled = (name: string) => {
+    if (typeof opts?.createActions === 'object') {
+      return opts.createActions[name] !== false;
+    }
+    return opts?.createActions !== false;
+  };
 
-  if (opts?.createActions === undefined || opts?.createActions !== false) {
-    removeRestActions.replace = {
+  const schemaActions: Record<string, any> = {};
+
+  if (actionEnabled('replace')) {
+    schemaActions.replace = {
       rest: null as any,
+    };
+  }
+
+  if (actionEnabled('findOne')) {
+    schemaActions.findOne = async function (ctx: any) {
+      const result: any[] = await ctx.call(`${this.name}.find`, ctx.params);
+      if (result.length) return result[0];
+      return;
+    };
+  }
+
+  if (actionEnabled('removeAllEntities')) {
+    schemaActions.removeAllEntities = async function (ctx: any) {
+      return await this.clearEntities(ctx);
+    };
+  }
+
+  if (actionEnabled('populateByProp')) {
+    schemaActions.populateByProp = async function (
+      ctx: Context<{
+        id: number | number[];
+        queryKey: string;
+        query: any;
+        mapping?: boolean;
+        mappingMulti?: boolean;
+        mappingField: string;
+      }>,
+    ): Promise<any> {
+      const { id, queryKey, query, mapping, mappingMulti, mappingField } = ctx.params;
+
+      delete ctx.params.queryKey;
+      delete ctx.params.id;
+      delete ctx.params.mapping;
+      delete ctx.params.mappingMulti;
+      delete ctx.params.mappingField;
+
+      const entities = await this.findEntities(ctx, {
+        ...ctx.params,
+        query: {
+          ...(query || {}),
+          [queryKey]: { $in: id },
+        },
+      });
+
+      return makeMapping(entities, mapping ? queryKey : '', {
+        mappingMulti,
+        mappingField: mappingField,
+      });
     };
   }
 
@@ -111,51 +166,7 @@ export default function (opts: any = {}) {
       }
     },
 
-    actions: {
-      ...removeRestActions,
-
-      async findOne(ctx: any) {
-        const result: any[] = await ctx.call(`${this.name}.find`, ctx.params);
-        if (result.length) return result[0];
-        return;
-      },
-
-      async removeAllEntities(ctx: any) {
-        return await this.clearEntities(ctx);
-      },
-
-      async populateByProp(
-        ctx: Context<{
-          id: number | number[];
-          queryKey: string;
-          query: any;
-          mapping?: boolean;
-          mappingMulti?: boolean;
-          mappingField: string;
-        }>,
-      ): Promise<any> {
-        const { id, queryKey, query, mapping, mappingMulti, mappingField } = ctx.params;
-
-        delete ctx.params.queryKey;
-        delete ctx.params.id;
-        delete ctx.params.mapping;
-        delete ctx.params.mappingMulti;
-        delete ctx.params.mappingField;
-
-        const entities = await this.findEntities(ctx, {
-          ...ctx.params,
-          query: {
-            ...(query || {}),
-            [queryKey]: { $in: id },
-          },
-        });
-
-        return makeMapping(entities, mapping ? queryKey : '', {
-          mappingMulti,
-          mappingField: mappingField,
-        });
-      },
-    },
+    actions: schemaActions,
 
     methods: {
       filterQueryIds(ids: number[], queryIds?: any) {

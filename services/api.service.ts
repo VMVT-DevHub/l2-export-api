@@ -1,6 +1,10 @@
+'use strict';
+
 import moleculer, { Context, Errors } from 'moleculer';
 import { Action, Service } from 'moleculer-decorators';
 import ApiGateway from 'moleculer-web';
+
+const API_WHITELIST = ['api.ping', 'certificates.search', 'sharepoint.getFiles', 'sharepoint.download'];
 
 @Service({
   name: 'api',
@@ -29,10 +33,7 @@ import ApiGateway from 'moleculer-web';
     routes: [
       {
         path: '/',
-        whitelist: [
-          // Access to any actions in all services under "/" URL
-          '**',
-        ],
+        whitelist: API_WHITELIST,
 
         // Route-level Express middlewares. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Middlewares
         use: [],
@@ -45,7 +46,7 @@ import ApiGateway from 'moleculer-web';
         autoAliases: true,
 
         aliases: {
-          'GET /ping': 'api.ping',
+          'GET /api/ping': 'api.ping',
         },
 
         // Enable authentication. Implement the logic into `authenticate` method. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Authentication
@@ -69,7 +70,7 @@ import ApiGateway from 'moleculer-web';
         },
 
         // Mapping policy setting. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Mapping-policy
-        mappingPolicy: 'all', // Available values: "all", "restrict"
+        mappingPolicy: 'restrict', // Available values: "all", "restrict"
 
         // Enable/disable logging
         logging: true,
