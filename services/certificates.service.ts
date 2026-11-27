@@ -69,6 +69,10 @@ interface Certificate {
   }> | null;
 }
 
+function normalizeNumber(value: string) {
+  return value.replace(/\s+/g, '').toUpperCase();
+}
+
 @Service({
   name: 'certificates',
   mixins: [
@@ -165,26 +169,31 @@ export default class extends moleculer.Service {
   @Action({
     rest: 'GET /search',
     params: {
-      certificateNumber: 'string|convert|min:3',
+      certificateNumber: 'string|convert|trim|min:3|max:64',
+      blankNumber: 'string|convert|trim|min:3|max:64',
       year: 'string|convert|optional',
-      blankNumber: 'string|convert|optional',
     },
   })
-  async search(ctx: Context<{ certificateNumber: string; year?: string; blankNumber?: number }>) {
+  async search(ctx: Context<{ certificateNumber: string; blankNumber: string; year?: string }>) {
     const { certificateNumber, year, blankNumber } = ctx.params;
 
-    // it's really messy. Spaces can be found anywhere (except in cetirifacte number (without letters))
+    // Data contains stray spaces, so compare with spaces removed. Both numbers are required:
+    // the blank number is the second factor that proves the caller holds the paper certificate.
     const query: any = {
       certificateNumber: {
-        $ilike: `%${certificateNumber}%`,
+        $raw: {
+          condition: "upper(replace(certificate_number, ' ', '')) = ?",
+          bindings: [normalizeNumber(certificateNumber)],
+        },
+      },
+      blankNumber: {
+        $raw: {
+          condition:
+            "coalesce(blank_number, '') <> '' AND upper(replace(blank_number, ' ', '')) = ?",
+          bindings: [normalizeNumber(blankNumber)],
+        },
       },
     };
-
-    if (blankNumber) {
-      query.blankNumber = {
-        $ilike: `%${blankNumber}%`,
-      };
-    }
 
     if (year) {
       query.year = {

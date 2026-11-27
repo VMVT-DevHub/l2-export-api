@@ -72,6 +72,16 @@ const API_WHITELIST = ['api.ping', 'certificates.search', 'sharepoint.getFiles',
         // Mapping policy setting. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Mapping-policy
         mappingPolicy: 'restrict', // Available values: "all", "restrict"
 
+        // Public lookup endpoints: throttle per client IP to make number guessing impractical.
+        rateLimit: {
+          window: 60 * 1000,
+          limit: Number(process.env.RATE_LIMIT_PER_MINUTE || 30),
+          headers: true,
+          key: (req: any) =>
+            (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+            req.socket?.remoteAddress,
+        },
+
         // Enable/disable logging
         logging: true,
       },

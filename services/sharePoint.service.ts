@@ -1,4 +1,5 @@
 'use strict';
+import { createHmac, timingSafeEqual } from 'crypto';
 import _ from 'lodash';
 import Moleculer, { Context, RestSchema } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
@@ -32,6 +33,13 @@ export function toReadableStream(fetchReadable: any): NodeJS.ReadableStream {
   },
 })
 export default class extends Moleculer.Service {
+  created() {
+    const secret = process.env.DOWNLOAD_URL_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new Error('DOWNLOAD_URL_SECRET must be set and be at least 32 characters long');
+    }
+  }
+
   @Method
   async authenticate() {
     const url = `https://login.microsoftonline.com/${process.env.SHARE_POINT_TENANT_ID}/oauth2/v2.0/token`;
@@ -157,8 +165,21 @@ export default class extends Moleculer.Service {
   }
 
   @Method
+  signDownload(id: string, fileName: string, exp: number) {
+    return createHmac('sha256', process.env.DOWNLOAD_URL_SECRET)
+      .update(`${id}\n${fileName}\n${exp}`)
+      .digest('base64url');
+  }
+
+  @Method
   getFileUrl(id: string, fileName: string) {
-    return `${process.env.SERVER_HOST}/certificates/download/${id}/${fileName}`;
+    const ttl = Number(process.env.DOWNLOAD_URL_TTL_SECONDS || 15 * 60);
+    const exp = Math.floor(Date.now() / 1000) + ttl;
+    const qs = new URLSearchParams({ exp: String(exp), sig: this.signDownload(id, fileName, exp) });
+    return (
+      `${process.env.SERVER_HOST}/certificates/download/` +
+      `${encodeURIComponent(id)}/${encodeURIComponent(fileName)}?${qs}`
+    );
   }
 
   @Method
@@ -177,15 +198,24 @@ export default class extends Moleculer.Service {
       path: '/files/:id',
     },
     params: {
-      id: 'string',
+      id: { type: 'string', trim: true, min: 3, max: 64, pattern: /^[A-Za-z0-9 _-]+$/ },
+      blankNumber: 'string|convert|trim|min:3|max:64',
     },
   })
-  async getFiles(ctx: Context<{ id: string }>) {
+  async getFiles(ctx: Context<{ id: string; blankNumber: string }>) {
+    const { id, blankNumber } = ctx.params;
+
+    // Second factor: throws 404 unless both numbers identify exactly one certificate.
+    const certificate: { certificateNumber: string } = await ctx.call('certificates.search', {
+      certificateNumber: id,
+      blankNumber,
+    });
+
     await this.validateToken();
 
-    const id = ctx.params.id;
-
-    const filesInfo: { id: string; name: string; size: number }[] = await this.getFilesInfo(id);
+    const filesInfo: { id: string; name: string; size: number }[] = await this.getFilesInfo(
+      certificate.certificateNumber,
+    );
 
     if (!filesInfo.length) {
       return [];
@@ -194,7 +224,7 @@ export default class extends Moleculer.Service {
     const data = [];
 
     for (const f of filesInfo) {
-      const url = await this.getFileUrl(f.id, f.name);
+      const url = this.getFileUrl(f.id, f.name);
       data.push({
         url,
         name: f.name,
@@ -212,11 +242,24 @@ export default class extends Moleculer.Service {
       path: '/download/:id/:name',
     },
     params: {
-      id: 'string',
-      name: 'string',
+      id: { type: 'string', min: 1, max: 128, pattern: /^[A-Za-z0-9]+$/ },
+      // no quotes, slashes or line breaks: the name is echoed into Content-Disposition
+      name: { type: 'string', min: 1, max: 255, pattern: /^[^"\\/\r\n]+$/ },
+      exp: 'number|convert|integer|positive',
+      sig: 'string|min:16|max:128',
     },
   })
-  async download(ctx: Context<{ id: string; name: string }, any>) {
+  async download(ctx: Context<{ id: string; name: string; exp: number; sig: string }, any>) {
+    const { id, name, exp, sig } = ctx.params;
+
+    const expected = this.signDownload(id, name, exp);
+    const signatureValid =
+      sig.length === expected.length && timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+
+    if (!signatureValid || exp < Math.floor(Date.now() / 1000)) {
+      throwNotFoundError('Certificate file not found.');
+    }
+
     await this.validateToken();
 
     const token: any = await this.getToken();
@@ -225,7 +268,6 @@ export default class extends Moleculer.Service {
       authorization: token,
     };
 
-    const { id, name } = ctx.params;
     const fileInfo: any = await this.getFileInfo(id);
 
     if (!fileInfo || !this.isCertificateFile(fileInfo) || fileInfo.name !== name) {
